@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 
-const {Schema, model} = mongoose;
+const { Schema, model } = mongoose;
 
 const doctorSchema = new Schema({
 
@@ -28,4 +28,4 @@ const doctorSchema = new Schema({
     },
 });
 
-export default model('Doctor', doctorSchema);
+export default model("Doctor", doctorSchema);

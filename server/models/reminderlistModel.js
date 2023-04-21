@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Reminder from "./reminderModel.js"
 
-const {Schema, model} = mongoose;
+const { Schema, model } = mongoose;
 
 const ReminderListSchema = new Schema({
     linkedto: {

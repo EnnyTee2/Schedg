@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import Appointment from "./appointmentModel.js";
 
-const {Schema, model} = mongoose;
+const { Schema, model } = mongoose;
 
 const ReminderSchema = new Schema({
 

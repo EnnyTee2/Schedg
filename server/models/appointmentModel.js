@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-const {Schema, model} = mongoose;
+const { Schema, model } = mongoose;
 
 const AppointmentSchema = new Schema({
 
@@ -37,4 +37,4 @@ const AppointmentSchema = new Schema({
     },
 });
 
-export default model('Appointment', AppointmentSchema);
+export default model("Appointment", AppointmentSchema);
