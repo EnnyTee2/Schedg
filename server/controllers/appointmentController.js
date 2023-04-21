@@ -1,5 +1,6 @@
 import Appointment from "../models/appointmentModel.js";
 import AppointmentList from "../models/appointmentlistModel.js";
+import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../utils/ErrorHandler.js";
 
 /* ROUTES
