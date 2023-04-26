@@ -2,8 +2,12 @@ const schedule = require('node-schedule');
 const nodemailer = require('nodemailer');
 
 import Appointment from "../models/appointmentModel.js";
+import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
+import ErrorHandler from "../utils/ErrorHandler.js";
 
-const mail_transporter = nodemailer.createTransport({
+// nodemailer  transporter config
+const mail_transporter = nodemailer.createTransport(
+  {
     service: 'gmail',
     auth: {
       user: 'schedg23@gmail.com',
@@ -38,3 +42,5 @@ const reminderJob = schedule.scheduleJob('0 * * * *', async function() {
     }
   }
 });
+
+// Inform user of cancelled appointment by doctor

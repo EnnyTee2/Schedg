@@ -7,11 +7,9 @@ const AppointmentSchema = new Schema({
     linkedto: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
     },
     doctor: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
         ref: "Doctor",
     },
     appointmentDate: {
@@ -24,17 +22,19 @@ const AppointmentSchema = new Schema({
     },
     createdAt: {
         type: Date,
-        required: true,
         default: Date.now,
     },
     appointmentType: {
         type: String,
-        required: true,
         default: "Consultation",
     },
     notes: {
         type: String,
     },
+    status: {
+        type: String,
+        default: "active",
+    }
 });
 
 export default model("Appointment", AppointmentSchema);

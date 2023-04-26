@@ -8,10 +8,12 @@ const AppointmentListSchema = new Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Doctor",
     },
-    appointments: {
-        type: [Appointment],
-        default: [],
-    }
+    appointments: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Appointment",
+        }
+    ]
 
 });
 
