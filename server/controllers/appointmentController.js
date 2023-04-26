@@ -87,6 +87,7 @@ export const createAppointment = catchAsyncErrors(async (req, res, next) => {
     });
   });
 
+  // All appointments => /api/v1/appointment/all/active GET*****
   export const getAllActiveAppointments = catchAsyncErrors(async (req, res, next) => {
 
     const currentUser = req.user.id; // get the current logged-in user
@@ -105,6 +106,7 @@ export const createAppointment = catchAsyncErrors(async (req, res, next) => {
     });
   });
 
+  // All appointments => /api/v1/appointment/all/cancelled GET*****
   export const getAllCancelledAppointments = catchAsyncErrors(async (req, res, next) => {
 
     const currentUser = req.user.id; // get the current logged-in user
@@ -123,30 +125,22 @@ export const createAppointment = catchAsyncErrors(async (req, res, next) => {
     });
   });
 
-  // Get all appointments linked to a pecific doctor 'request by doctor'
+  // Get all appointments linked to a specific doctor 'request made only by doctors'
   // Get => /api/v1/appointment/patients/all  GET*****
   export const getAllPatientAppointments = catchAsyncErrors(async (req, res, next) => {
 
     const currentUser = req.user.id; // get the current logged-in user
 
-    //const doctor_app = Appointment.find( {doctor: currentDoctor} );
-
-    // const appointments = await doctor_app.find({})// find appointments linked to the current Doctor
-    //     .populate("linkedto")
-    //     .populate("appointmentType")
-    //     .populate("appointmentDate")
-    //     .populate("appointmentDuration")
-    //     .populate("notes");
-    //const appointments = await doctor_app.findMany({}, { doctor: 0, createdAt: 0, updatedAt: 0});
-    // frontend should render or display the above appointment data in a numbered list or table. 
-
     const asoc_doc = await Doctor.find({linkedto: currentUser}); // get the doctor associated with the request
     const cursor_count = await Appointment.count({_id: asoc_doc}); // get the number of DB appointment entries with the Doctor
     const appointments = await Appointment.find({_id: asoc_doc}); // get the appointments associated with the Doctor
 
+
     if (cursor_count === 0) {
       return next(new ErrorHandler("There are no patient appointments with this doctor", 400));
     }
+
+    // frontend should render or display in the below appointment data in a numbered list or table. 
 
     res.status(200).json({
       success: true,
@@ -155,7 +149,7 @@ export const createAppointment = catchAsyncErrors(async (req, res, next) => {
   
   });
   
-  // Get single appointment => /api/v1/appointment/:id  GET*****
+  // Get single appointment by ID => /api/v1/appointment/:id  GET*****
   export const getAppointment = catchAsyncErrors(async (req, res, next) => {
     const { id } = req.params;
     const appointment = await Appointment.find({ _id: id , linkedto: req.user.id},)
@@ -174,61 +168,81 @@ export const createAppointment = catchAsyncErrors(async (req, res, next) => {
     });
   });
   
-  // Update appointment => /api/v1/appointment/:id PUT****
+  // Update appointment => /api/v1/appointment/update/:id PUT****
   export const updateAppointment = catchAsyncErrors(async (req, res, next) => {
+    let allFree;
     const { id } = req.params;
-    
-    const { doctor, appointmentDate, appointmentDuration, appointmentType, notes } = req.body;
+    const { appointmentDate, appointmentDuration, appointmentType, notes } = req.body;
 
+    const userRole = req.user.role;
+    
+    // if the user is a doctor or patient, check if active appointment exists and update 
+    if (userRole === "doctor")
+    {
+      //const thisdoct = Doctor.findOne({_id: req.user.doctor_id});
+      const query = { doctor: req.user.doctor_id, status: "active" };
+
+      // fetch the specified doctor's appointment list
+      app_list = await Appointment.find(query);
+      if (!app_list) {
+        allFree = true;
+        return next(new ErrorHandler("You don't have any active appointments", 400));
+      }
+    }
+
+    if (userRole === "user")
+    {
+      const appt = Appointment.findById(id);
+      const thisDoctor = appt.doctor;
+      const query = { doctor: thisDoctor, status: "active" };
+
+      // fetch the specified doctor's appointment list
+      app_list = await Appointment.find(query);
+
+      if (!app_list) {
+        allFree = true;
+        return next(new ErrorHandler("You don't have any active appointments", 400));
+      }
+    }
+    
+    
     // Logic for checking available dates before updating appointment goes here:
-    const query = { linkedto: doctor };
+    // check if the doctor is already booked for user selected period
+    if (!allFree)
+    {
+      const available = app_list.find({ Appointment: { $elemMatch: { appointmentDate: appointmentDate, appointmentDuration: appointmentDuration} } });
+      if (available) {
+          console.log(`Doctor ${ doctor.name } is already booked for that date, kindly select another date`);
+          return;
+      }
 
-    // fetch the specified doctor's appointment list
-    app_list = await AppointmentList.find(query);
-
-    if (!app_list) {
-        return next(new ErrorHandler("Specified Doctor does not exist", 404));
-    }
-
-    // check if the doctor is already booked for user selected period 
-    const available = app_list.find({ Appointment: { $elemMatch: { appointmentDate: appointmentDate, appointmentDuration: appointmentDuration} } },
-        function (err, appointment) { 
-            if (err) { 
-                console.error(err);
-            return false;
-            }
-        });
+      const update = {
+          appointmentDate,
+          appointmentDuration,
+          appointmentType,
+          notes,
+      };
+      
+      // Update the Appointment when all conditions are met
+      const appointment = await Appointment.findByIdAndUpdate(id, update, {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false,
+      })
+        .populate("appointmentDate")
+        .populate("appointmentDuration")
+        .populate("appointmentType")
+        .populate("notes");
     
-    if (available) {
-        console.log(`Doctor ${ doctor.name } is already booked for that date, kindly select another date`);
-        return;
+      if (!appointment) {
+        return next(new ErrorHandler("Specified appointment does not exist", 404));
+      }
+    
+      res.status(200).json({
+        success: true,
+        data: post,
+      });
     }
-
-    const update = {
-        appointmentDate,
-        appointmentDuration,
-        appointmentType,
-        notes,
-    };
-  
-    const appointment = await Appointment.findByIdAndUpdate(id, update, {
-      new: true,
-      runValidators: true,
-      useFindAndModify: false,
-    })
-      .populate("appointmentDate")
-      .populate("appointmentDuration")
-      .populate("appointmentType")
-      .populate("notes");
-  
-    if (!appointment) {
-      return next(new ErrorHandler("Specified appointment does not exist", 404));
-    }
-  
-    res.status(200).json({
-      success: true,
-      data: post,
-    });
   });
   
   // Delete appointment => /api/v1/appointment/:id PUT****

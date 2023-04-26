@@ -24,12 +24,12 @@ router.get('/appointment/all', isAuthenticatedUser, getAllAppointments);
 router.get('/appointment/:id', isAuthenticatedUser, getAppointment);
 
 router.post('/appointment/new', isAuthenticatedUser, createAppointment);
-router.put('/appointment/:id', isAuthenticatedUser, updateAppointment);
-router.post('/appointment/:id', isAuthenticatedUser, cancelAppointment);
+router.put('/appointment/update/:id', isAuthenticatedUser, updateAppointment);
 router.delete('/appointment/:id', isAuthenticatedUser, deleteAppointment);
 
+router.post('/appointment/cancel/:id', isAuthenticatedUser, cancelAppointment);
 router.get('/appointment/all/active', isAuthenticatedUser, getAllActiveAppointments);
 router.get('/appointment/all/cancelled', isAuthenticatedUser, getAllCancelledAppointments);
-router.get('/appointment/patients/all', isAuthenticatedUser, authorizeRoles("admin"), getAllPatientAppointments);
+router.get('/appointment/patients/all', isAuthenticatedUser, authorizeRoles("doctor"), getAllPatientAppointments);
 
 export default router;         

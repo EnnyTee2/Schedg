@@ -35,8 +35,6 @@ export const applyDoctor = catchAsyncErrors(async (req, res, next) => {
         }
         
         // Elevate user role to doctor
-        console.log(`newdoc id is: ${newdoc._id}`);
-
         const userUpdate = {
             role: "doctor",
             doctorId: newdoc._id,
@@ -122,8 +120,8 @@ export const getFullDoctors = catchAsyncErrors(async (req, res, next) => {
 
 
 // Update doctor profile => api/v1/doctor/:id ****
-export const updateDoctor = catchAsyncErrors(async (req, res, next) => {
-    const { id } = req.params;
+export const updateDoctorProfile = catchAsyncErrors(async (req, res, next) => {
+    const id = req.user.doctorId;
 
     const { phone, specialty, yearsExp, consultFee, availableHrs } = req.body;
     const update = {
@@ -155,26 +153,65 @@ export const updateDoctor = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
-// Delete doctor profile => api/v1/doctor/me/delete ****
-export const deleteDoctorProfile = catchAsyncErrors(async (req, res, next) => {
-    const user = User.find({ _id: req.user.id });
 
-    const doctor = await Doctor.findByIdAndDelete(req.user.doctorId);
+// Update doctor profile => api/v1/doctor/update/id ****
+export const updateDoctor = catchAsyncErrors(async (req, res, next) => {
+    const id = req.params.id;
+
+    const { phone, specialty, yearsExp, consultFee, availableHrs } = req.body;
     const update = {
-        role: "user",
-        doctorId: null,
-        isDoctor: false,
+        phone,
+        specialty,
+        yearsExp,
+        consultFee,
+        availableHrs,
     };
-    const ape = User.findByIdAndUpdate(req.user.id, update, {
+
+    const doctor = await Doctor.findByIdAndUpdate(id, update, {
         new: true,
         runValidators: true,
         useFindAndModify: false,
     })
-    .populate("role")
-    .populate("doctorId")
-    .populate("isDoctor");
+        .populate("phone")
+        .populate("specialty")
+        .populate("yearsExp")
+        .populate("consultFee")
+        .populate("availableHrs");
 
-    console.log(`Doctors ID before delete is: ${req.user.doctorId} logg id: ${user}`);
+    if (!doctor) {
+        return next(new ErrorHandler("Doctor Profile could not be updated", 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        data: doctor,
+    });
+});
+
+
+// Delete doctor profile => api/v1/doctor/me/delete ****
+export const deleteDoctorProfile = catchAsyncErrors(async (req, res, next) => {
+    const user = User.findOne({ _id: req.user.id });
+     
+// Return doctor to user role
+    //console.log(`newdoc id is: ${newdoc._id}`);
+
+    const userUpdate = {
+        role: "user",
+        doctorId: '',
+        isDoctor: false,
+    };
+    const user_update = await User.findByIdAndUpdate(req.user.id, userUpdate, {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false,
+    })
+        .populate("role")
+        .populate("doctorId")
+        .populate("isDoctor");
+
+
+    const doctor = await Doctor.findByIdAndDelete(req.user.doctorId);
 
     
     if (!doctor)
@@ -197,7 +234,7 @@ export const deleteDoctor = catchAsyncErrors(async (req, res, next) => {
     const doctor = await Doctor.findByIdAndDelete(req.params.id);
     const update = {
         role: "user",
-        doctorId: null,
+        doctorId: "",
         isDoctor: false
     }
     const delDocUser = User.findByIdAndUpdate(user._id, update, {

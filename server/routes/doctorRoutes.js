@@ -6,6 +6,7 @@ import {
     getDoctorProfile,
     getListDoctors,
     getFullDoctors,
+    updateDoctorProfile,
     updateDoctor,
     deleteDoctor,
     deleteAllDoctor,
@@ -27,8 +28,10 @@ router.get('/alldoctorinfo', isAuthenticatedUser, authorizeRoles("admin"), getFu
 router.post('/register-as-doctor', isAuthenticatedUser, applyDoctor);
 
 router.get('/:id', isAuthenticatedUser, getDoctor);
-router.put('/:id', isAuthenticatedUser, updateDoctor);
+router.put('/me/update', isAuthenticatedUser, updateDoctorProfile);
 router.delete('/me/delete', isAuthenticatedUser, deleteDoctorProfile);
+
+router.put('/update/:id', isAuthenticatedUser, authorizeRoles("admin"), updateDoctor);
 router.delete('/delete/:id', isAuthenticatedUser, authorizeRoles("admin"), deleteDoctor);
 router.delete('/delete_all', isAuthenticatedUser, authorizeRoles("admin"), deleteAllDoctor);
 
