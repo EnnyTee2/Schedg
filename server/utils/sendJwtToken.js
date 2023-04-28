@@ -16,7 +16,6 @@ const sendJwtToken = (user, statusCode, res) => {
   // send response   
   res.status(statusCode).cookie("token", token, options).json({
     success: true,
-    token
   });
 
 }

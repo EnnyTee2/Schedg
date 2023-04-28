@@ -6,7 +6,8 @@ import {
     getAllActiveAppointments,
     getAllCancelledAppointments,
     getAllPatientAppointments,
-    createAppointment,
+    createAppointmentPat,
+    createAppointmentDoc,
     updateAppointment,
     deleteAppointment,
     cancelAppointment,
@@ -23,7 +24,9 @@ router.get('/appointment/all', isAuthenticatedUser, getAllAppointments);
 
 router.get('/appointment/:id', isAuthenticatedUser, getAppointment);
 
-router.post('/appointment/new', isAuthenticatedUser, createAppointment);
+router.post('/appointment/newconsult', isAuthenticatedUser, createAppointmentPat);
+router.post('/appointment/newfollowup', isAuthenticatedUser, authorizeRoles("doctor"), createAppointmentDoc);
+
 router.put('/appointment/update/:id', isAuthenticatedUser, updateAppointment);
 router.delete('/appointment/:id', isAuthenticatedUser, deleteAppointment);
 

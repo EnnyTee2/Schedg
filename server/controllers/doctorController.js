@@ -15,7 +15,6 @@ export const applyDoctor = catchAsyncErrors(async (req, res, next) => {
     // Check if any doctor is linked to the user account
     const isDoctor = await Doctor.findOne( { linkedto: req.user.id} );
     
-
     if (!isDoctor) {
         const user = await User.findById(req.user.id);
         //const username = await User.findOne({ _id: req.user.id })
@@ -24,6 +23,7 @@ export const applyDoctor = catchAsyncErrors(async (req, res, next) => {
                 linkedto: user,
                 name: user.name,
                 phone,
+                email: req.user.email,
                 specialty,
                 consultFee,
                 yearsExp,
@@ -38,7 +38,7 @@ export const applyDoctor = catchAsyncErrors(async (req, res, next) => {
         const userUpdate = {
             role: "doctor",
             doctorId: newdoc._id,
-            isDoctor: true,
+            isDoctor: true
         };
         const user_update = await User.findByIdAndUpdate(req.user.id, userUpdate, {
             new: true,
@@ -61,14 +61,17 @@ export const applyDoctor = catchAsyncErrors(async (req, res, next) => {
 
 });
 
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 // Get single doctor profile => /api/v1/doctor/:id  *****
 export const getDoctor = catchAsyncErrors(async (req, res, next) => {
     const { id } = req.params;
 
-    const doctor = await Doctor.findOne({linkedto: req.user.id}, {linkedto: 0, phone: 0, createdAt: 0, updatedAt: 0});
+    const doctor = await Doctor.findOne({linkedto: id}, {linkedto: 0, phone: 0, createdAt: 0, updatedAt: 0});
   
     if (!doctor) {
-      return next(new ErrorHandler("Doctor profile could not be found", 404));
+        console.log(`doctor id given is ${id}`);
+        return next(new ErrorHandler("Doctor profile could not be found", 404));
     }
   
     // optionally populate user appointments associated with the doctor being viewed
@@ -79,6 +82,8 @@ export const getDoctor = catchAsyncErrors(async (req, res, next) => {
       data: doctor,
     });
 });
+
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 export const getDoctorProfile = catchAsyncErrors(async (req, res, next) => {
     const doctor = await Doctor.findOne({linkedto: req.user.id})
@@ -93,10 +98,12 @@ export const getDoctorProfile = catchAsyncErrors(async (req, res, next) => {
     });
   });
 
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
 // Get all doctors for user view => api/v1/doctor/all ***
 export const getListDoctors = catchAsyncErrors(async (req, res, next) => {
 
-    const doctors = await Doctor.find({}, {linkedto: 0, phone: 0, createdAt: 0, updatedAt: 0});
+    const doctors = await Doctor.find({}, {linkedto: 0, phone: 0, createdAt: 0, updatedAt: 0, email: 0, __v: 0});
 
     if (!doctors) {
         return next(new ErrorHandler("There are no Doctors Available", 404));
@@ -118,6 +125,7 @@ export const getFullDoctors = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
 // Update doctor profile => api/v1/doctor/:id ****
 export const updateDoctorProfile = catchAsyncErrors(async (req, res, next) => {
@@ -153,6 +161,7 @@ export const updateDoctorProfile = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+//%%&&&&&&&&&&&&&&&&&&**************************&&&&&&&&&&&&&&&&&&&*********************************&&&&&&&&&&&&&&&&&&&&&&&&&
 
 // Update doctor profile => api/v1/doctor/update/id ****
 export const updateDoctor = catchAsyncErrors(async (req, res, next) => {
@@ -188,6 +197,7 @@ export const updateDoctor = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+//*******#################*********#########################**************####################*******####################
 
 // Delete doctor profile => api/v1/doctor/me/delete ****
 export const deleteDoctorProfile = catchAsyncErrors(async (req, res, next) => {
@@ -228,6 +238,8 @@ export const deleteDoctorProfile = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 export const deleteDoctor = catchAsyncErrors(async (req, res, next) => {
     const user = User.findOne({ doctorId: req.params.id }); // find the user with the specified doctorId
 
@@ -260,6 +272,7 @@ export const deleteDoctor = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 // Delete all doctor profiles => api/v1/doctor/delete_all ****
 export const deleteAllDoctor = catchAsyncErrors(async (req, res, next) => {

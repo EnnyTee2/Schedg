@@ -19,6 +19,9 @@ const doctorSchema = new Schema({
         unique: true,
         required: true,
     },
+    email: {
+        type: String,
+    },
     specialty: {
         type: String,
         default: "General Practice",
@@ -55,8 +58,7 @@ const doctorSchema = new Schema({
                 "start_time": "09:00",
                 "end_time": "03:00"
             },
-        ],
-    
+        ], 
     },
     consultFee: {
         type: Number,

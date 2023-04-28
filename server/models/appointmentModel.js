@@ -14,12 +14,13 @@ const AppointmentSchema = new Schema({
     },
     appointmentDate: {
         type: Date,
-        required: true,
     },
-    appointmentDuration: {
-        type: Number,
-        required: true,
-    },
+    appointmentTime: [
+        {
+            start: {type: Date, required: true},
+            end: {type: Date, required: true}
+        }
+    ],
     createdAt: {
         type: Date,
         default: Date.now,
@@ -34,7 +35,34 @@ const AppointmentSchema = new Schema({
     status: {
         type: String,
         default: "active",
-    }
+    },
+    umail: {
+        type: String,
+        default: "",
+    },
+    dmail: {
+        type: String,
+        default: "",
+    },
 });
 
-export default model("Appointment", AppointmentSchema);
+// Validate the appointment start and end date
+// ensure start date is not in the past
+// AppointmentSchema.path('appointmentTime.start').validate({
+//     validator: function(value) {
+//         const currDate = new Date.now;
+//         return value > currDate;
+//     },
+//     message: 'Selected appointment start date cannot be a past date'
+//     });  
+
+// // ensure end date is greater than start
+// AppointmentSchema.path('appointmentTime.end').validate({
+//     validator: function(value) {
+//       return value > this.appointmentTime
+//       .start;
+//     },
+//     message: 'Selected appointment end date must be greater than start date'
+//   });
+
+  export default model("Appointment", AppointmentSchema);

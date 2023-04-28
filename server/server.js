@@ -54,8 +54,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
-app.use(cors(corsOptions))
-app.use(fileUpload())
+app.use(cors(corsOptions));
+app.use(fileUpload());
 
 // Setting up cloudinary configuration
 cloudinary.config({

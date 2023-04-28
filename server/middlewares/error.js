@@ -1,5 +1,3 @@
-import ErrorHandler from "../utils/ErrorHandler.js";
-
 // Handle specific errors
 export default  (err, req, res, next) => {
 
@@ -17,4 +15,10 @@ export default  (err, req, res, next) => {
     }
 
     // handle Production errors
+    if(process.env.NODE_ENV === 'PRODUCTION') {
+        res.status(err.statusCode).json({
+            success: false,
+            error: err,
+        })
+    }
 }
