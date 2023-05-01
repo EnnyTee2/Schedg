@@ -1,5 +1,5 @@
-const schedule = require('node-schedule');
-const nodemailer = require('nodemailer');
+import nodemailer from "nodemailer";
+import schedule from "node-schedule";
 
 
 import User from "../models/userModel.js";
@@ -10,7 +10,7 @@ import ErrorHandler from "../utils/ErrorHandler.js";
 
 
 // nodemailer  transporter config
-const mail_transporter = nodemailer.createTransport(
+export const mail_transporter = nodemailer.createTransport(
   {
     service: 'gmail',
     auth: {
@@ -48,20 +48,20 @@ const reminderJob = schedule.scheduleJob('0 * * * *', async function() {
 });
 
 // Inform user of cancelled appointment by doctor
-const mailOptions = {
-  from: 'schedg23@gmail.com',
-  to: cancelledApp.linkedto.email,
-  subject: `Reminder: ${cancelledApp.appointmentType} Appointment with Doctor ${ cancelledApp.doctor.name}`,
-  text: `Hello ${cancelledApp.linkedto.name},\n\nThis is a reminder that your appointment with Doctor ${cancelledApp.doctor.name} at ${cancelledApp.appointmentDate} has been cancelled.\n\nThank you,\nSchedG Telehealth.`
-};
+// const mailOptions = {
+//   from: 'schedg23@gmail.com',
+//   to: cancelledApp.linkedto.email,
+//   subject: `Reminder: ${cancelledApp.appointmentType} Appointment with Doctor ${ cancelledApp.doctor.name}`,
+//   text: `Hello ${cancelledApp.linkedto.name},\n\nThis is a reminder that your appointment with Doctor ${cancelledApp.doctor.name} at ${cancelledApp.appointmentDate} has been cancelled.\n\nThank you,\nSchedG Telehealth.`
+// };
 
-mail_transporter.sendMail(mailOptions, function(error, info){
-  if (error) {
-  console.log(error);
-  } else {
-  console.log('Reminder email sent: ' + info.response);
-}
-});
+// mail_transporter.sendMail(mailOptions, function(error, info){
+//   if (error) {
+//   console.log(error);
+//   } else {
+//   console.log('Reminder email sent: ' + info.response);
+// }
+// });
 
 // Function to inform doctors/patients of cancelled appointments => /api/v1/register-as-doctor *****
 export const remPatCancel = catchAsyncErrors(async (req, res, next) => {

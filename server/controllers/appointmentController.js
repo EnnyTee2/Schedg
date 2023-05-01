@@ -4,6 +4,7 @@ import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
 import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../utils/ErrorHandler.js";
+import { mail_transporter } from "../controllers/reminderController.js";
 
 // New appointment => /api/v1/appointment/newconsult POST*****
 export const createAppointmentPat = catchAsyncErrors(async (req, res, next) => {
@@ -401,6 +402,7 @@ export const getAllPatientAppointments = catchAsyncErrors(async (req, res, next)
 
 // Get single appointment by ID => /api/v1/appointment/:id  GET*****
 export const getAppointment = catchAsyncErrors(async (req, res, next) => {
+  let message;
   const { id } = req.params;
   const cursor_count = await Appointment.count({ _id: id , linkedto: req.user.id});
   const appointment = await Appointment.find({ _id: id , linkedto: req.user.id},
@@ -416,6 +418,8 @@ export const getAppointment = catchAsyncErrors(async (req, res, next) => {
   if (!appointment) {
     return next(new ErrorHandler('Error while retrieving the appointment', 404));
   }
+
+  message = "appointment retrieval successful";
 
   res.status(200).json({
     success: true,
@@ -638,7 +642,7 @@ export const updateAppointment = catchAsyncErrors(async (req, res, next) => {
     };
     
     // Send the Email.
-    mail_transporter.sendmail(mailOptions, function(error, info){
+    mail_transporter.sendMail(mailOptions, function(error, info){
       if (error) {
       console.log(error);
       } else {
