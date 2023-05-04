@@ -44,6 +44,10 @@ const AppointmentSchema = new Schema({
         type: String,
         default: "",
     },
+    reminder: {
+        type: Boolean,
+        default: true,
+    },
 });
 
 // Validate the appointment start and end date

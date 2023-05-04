@@ -11,6 +11,7 @@ import {
     updateAppointment,
     deleteAppointment,
     cancelAppointment,
+    updateAppStatus,
 } from "../controllers/appointmentController.js";
 
 // Authenticator API, edit path to suite code
@@ -30,9 +31,10 @@ router.post('/appointment/newfollowup', isAuthenticatedUser, authorizeRoles("doc
 router.put('/appointment/update/:id', isAuthenticatedUser, updateAppointment);
 router.delete('/appointment/:id', isAuthenticatedUser, deleteAppointment);
 
+router.get('/appointment/all/refreshstatus', isAuthenticatedUser, updateAppStatus);
 router.post('/appointment/cancel/:id', isAuthenticatedUser, cancelAppointment);
 router.get('/appointment/all/active', isAuthenticatedUser, getAllActiveAppointments);
 router.get('/appointment/all/cancelled', isAuthenticatedUser, getAllCancelledAppointments);
 router.get('/appointment/patients/all', isAuthenticatedUser, authorizeRoles("doctor"), getAllPatientAppointments);
 
-export default router;         
+export default router;

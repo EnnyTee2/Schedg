@@ -6,22 +6,29 @@ import catchAsyncErrors from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../utils/ErrorHandler.js";
 import { mail_transporter } from "../controllers/reminderController.js";
 
+let mailOptions; // initialize mailOptions 
+
 // New appointment => /api/v1/appointment/newconsult POST*****
 export const createAppointmentPat = catchAsyncErrors(async (req, res, next) => {
-    const { doctor, appointmentDate, appointmentTime, appointmentType, notes } = req.body;
-  //Frontend: Ensure the dates dispalayed to the user are a subset of doctor's available hours
+    const { doctor, appointmentTime, appointmentType, notes } = req.body;
+    let count = 0; 
+
+  //Frontend: Ensure the dates displayed to the user to pick from are a subset of doctor's available hours
 
     // validate input Date data
-    const currentDate = Date.now();
-    const targetDate = new Date(appointmentTime.start);
-    if (appointmentTime.start < currentDate) {
+    const newStart = new Date(appointmentTime.start);
+    const newEnd = new Date(appointmentTime.end);
+   
+    const currentDate = new Date();
+
+    if (newStart.getTime() < currentDate.getTime()) {
         return next(new ErrorHandler("Selected start date cannot be in the past", 400));
     }
 
-    if (appointmentTime.end <= appointmentTime.start) {
-        return next(new ErrorHandler("Selected end date/time must be greater than start date/time", 400));
+    if (newEnd.getTime() <= newStart.getTime()) {
+        return next(new ErrorHandler("Selected end date / time must be greater than start date / time", 400));
     }
-    let count = 0;
+
   // fetch the specified doctor's active appointment list that coincides with the date
     const appointmentList = await Appointment.find({
       $and: [
@@ -34,54 +41,42 @@ export const createAppointmentPat = catchAsyncErrors(async (req, res, next) => {
         {
           $expr: {
             $and: [
-              { $eq: [ { $year: "$appointmentDate" }, { $year: targetDate } ] },
-              { $eq: [ { $month: "$appointmentDate" }, { $month: targetDate } ] },
-              { $eq: [ { $dayOfMonth: "$appointmentDate" }, { $dayOfMonth: targetDate } ] }
+              { $eq: [ { $year: "$appointmentDate" }, { $year: newStart } ] },
+              { $eq: [ { $month: "$appointmentDate" }, { $month: newStart } ] },
+              { $eq: [ { $dayOfMonth: "$appointmentDate" }, { $dayOfMonth: newStart } ] }
             ]
           }
         },
       ]
     }).exec();
-    
-    appointmentList.forEach((appointment) => 
+
+    appointmentList.forEach((appointment) =>
     {  
-      console.log(appointment);
-      if (appointmentTime.start >= appointment.end) // new date before existing
+      //console.log(appointment);
+      if (newStart.getTime() >= (appointment.appointmentTime[0].end).getTime()) // new date later than end of existing
       {
         count = 0;
-        console.log(`apptT.s ==> ${appointmentTime.start} >>== app.e${appointment.end}`);
-      } else if (appointmentTime.end <= appointment.start) // new date after existing
+      } else if (newEnd.getTime() <= (appointment.appointmentTime[0].start).getTime()) // new date earlier than end of existing
       {
         count = 0;
-        console.log(`apptT.s ==> ${appointmentTime.start} >>== app.e ${appointment.end}`);
+        console.log(`apptT.s ==> ${typeof(newStart)} | app.end=> ${typeof(appointment.appointmentTime[0].end)} | count => ${count}`);
       }
       else 
       {
-        console.log(`apptT.s ==> ${appointmentTime.start} >>== app.e${appointment.end}`);
         count = count + 1;
       }
      });
-    //   {
-    //     count = 0;
-    //     console.log(`apptT.s ==> ${appointmentTime.start} >>== app.e${{appointment.end}`);
-    //   } else {
-
-    //     console.log(`apptT.s ==> ${appointmentTime.start} >>== app.e${appointment.end}`);
-    //     count = count + 1;
-    // });
 
 
     const doctorProfile = await Doctor.findById(doctor);
     const dmail = doctorProfile.email;
-
-    console.log(`na patient email be dis: ${dmail}`);
 
     if (!appointmentList)
     {
       const appointment = await Appointment.create({
         linkedto: req.user.id,
         doctor,
-        appointmentDate,
+        appointmentDate: appointmentTime.start,
         appointmentTime,
         appointmentType,
         notes,
@@ -103,19 +98,14 @@ export const createAppointmentPat = catchAsyncErrors(async (req, res, next) => {
     } else { // If the doctor has active appointments
 
       console.log("DOCTOR GET SOME ACTIVE APPOINTMENTS ON THAT DATE");
-
-    // check if the doctor is already booked for user selected time period 
-      // let count = 0;
-      // const execApp = appointmentList
-      //console.log(`Count is ${count} and list contains ${appointmentList}`);
       
   
-      if (count === 0) // If there are no time-clashing appointments
+      if (count == 0) // If there are no time-clashing appointments
       {
         const appointment = await Appointment.create({
           linkedto:req.user.id,
           doctor,
-          appointmentDate,
+          appointmentDate: appointmentTime.start,
           appointmentTime,
           appointmentType,
           notes,
@@ -136,7 +126,8 @@ export const createAppointmentPat = catchAsyncErrors(async (req, res, next) => {
 
       } 
       else { // Selected time has appointment clashing
-        console.log(`Doctor ${ doctor } is already booked for this time window, kindly select another time or date`);
+        //console.log(`Doctor ${ doctor } is already booked for this time window, kindly select another time or date`);
+
         res.status(400).json({
           success: true,
           message: `Doctor ${ doctor } is already booked for this time window, kindly select another time or date`,
@@ -149,19 +140,22 @@ export const createAppointmentPat = catchAsyncErrors(async (req, res, next) => {
 
 // New appointment => /api/v1/appointment/newfollowup POST*****
 export const createAppointmentDoc = catchAsyncErrors(async (req, res, next) => {
-  const { patientId, appointmentDate, appointmentTime, appointmentType, notes } = req.body;
+  const { patientId, appointmentTime, appointmentType, notes } = req.body;
+  let count = 0;
 
 // validate input data
-  const currentDate = Date.now;
-  const targetDate = new Date(appointmentTime.start);
-  if (appointmentTime.start < currentDate) {
+
+  const newStart = new Date(appointmentTime.start);
+  const newEnd = new Date(appointmentTime.end);
+  const currentDate = new Date();
+  
+  if (newStart.getTime() < currentDate.getTime()) {
       return next(new ErrorHandler("Selected start date cannot be in the past", 400));
   }
 
-  if (appointmentTime.end <= appointmentTime.start) {
-      return next(new ErrorHandler("Selected end date/time must be greater than start date/time", 400));
+  if (newEnd.getTime() <= newStart.getTime()) {
+      return next(new ErrorHandler("Selected end date / time must be greater than start date / time", 400));
   }
-  console.log("I DON VALIDATE START & END DATES");
 
   console.log("I DON FIND Patient LIST");
 // logic for checking availability of selected date before appointment creation goes here
@@ -178,21 +172,38 @@ export const createAppointmentDoc = catchAsyncErrors(async (req, res, next) => {
       {
         $expr: {
           $and: [
-            { $eq: [ { $year: "$appointmentDate" }, { $year: targetDate } ] },
-            { $eq: [ { $month: "$appointmentDate" }, { $month: targetDate } ] },
-            { $eq: [ { $dayOfMonth: "$appointmentDate" }, { $dayOfMonth: targetDate } ] }
+            { $eq: [ { $year: "$appointmentDate" }, { $year: newStart } ] },
+            { $eq: [ { $month: "$appointmentDate" }, { $month: newStart } ] },
+            { $eq: [ { $dayOfMonth: "$appointmentDate" }, { $dayOfMonth: newStart } ] }
           ]
         }
       },
     ]
-  });
+  }).exec();
+
+  appointmentList.forEach((appointment) =>
+    {  
+      //console.log(appointment);
+      if (newStart.getTime() >= (appointment.appointmentTime[0].end).getTime()) // new date later than end of existing
+      {
+        count = 0;
+      } else if (newEnd.getTime() <= (appointment.appointmentTime[0].start).getTime()) // new date earlier than end of existing
+      {
+        count = 0;
+        console.log(`apptT.s ==> ${typeof(newStart)} | app.end=> ${typeof(appointment.appointmentTime[0].end)} | count => ${count}`);
+      }
+      else 
+      {
+        count = count + 1;
+      }
+     });
 
   //console.log("I DON FIND SAME DATE LIST");
   //console.log(`Na hin be dis: ${appointmentList}`); 
   //return next(new ErrorHandler("Na here you say make I end", 400));
 
   const patient = await User.findById(patientId);
-  const pmail = patient.email;
+  const pmail = patient.email; //test
 
   console.log(`na patient email be dis: ${pmail}`);
 
@@ -201,7 +212,7 @@ export const createAppointmentDoc = catchAsyncErrors(async (req, res, next) => {
     const appointment = await Appointment.create({
       linkedto: patientId,
       doctor: req.user.id,
-      appointmentDate,
+      appointmentDate: appointmentTime.start,
       appointmentTime,
       appointmentType,
       notes,
@@ -210,7 +221,7 @@ export const createAppointmentDoc = catchAsyncErrors(async (req, res, next) => {
     });
 
     if (!appointment) {
-      return next(new ErrorHandler("Appointment could not be created", 400));
+      return next(new ErrorHandler("Appointment could not be created", 500));
     }
 
     // return successful response
@@ -224,28 +235,13 @@ export const createAppointmentDoc = catchAsyncErrors(async (req, res, next) => {
 
     console.log("PATIENT GET SOME ACTIVE APPOINTMENTS ON THAT DATE");
 
-  // check if the User has appointment scheduled for the Doctor selected time period 
-    let count = 0;
-    appointmentList.forEach(appointment => {
-      
-      if (appointment.end <= appointmentTime.start) // new date before existing
-      {
-        count = 0;
-      } else if (appointmentTime.start >= appointment.end) // new date after existing
-      {
-        count = 0;
-      } else 
-      {
-        count = count + 1;
-      }
-    });
-
+  // check if the User has appointment scheduled for the Doctor selected time period
     if (count === 0) // No time-clashing appointments
     {
       const appointment = await Appointment.create({
         linkedto: patientId,
         doctor: req.user.id,
-        appointmentDate,
+        appointmentDate: appointmentTime.start,
         appointmentTime,
         appointmentType,
         notes,
@@ -263,9 +259,7 @@ export const createAppointmentDoc = catchAsyncErrors(async (req, res, next) => {
         message: `Appointment with User ${patientId} created succesfully!`,
         appointment,
       });
-
-    } 
-    else { // Selected time has appointment 
+    } else { // Selected time has appointment 
       console.log(`The User ${patientId} has an appointment for this time window, kindly select another time or date`);
       res.status(400).json({
         success: true,
@@ -413,13 +407,13 @@ export const getAppointment = catchAsyncErrors(async (req, res, next) => {
 
   if (cursor_count === 0) {
     message = `Specified appointment: '${id}' does not exist`;
-  }
-  
-  if (!appointment) {
-    return next(new ErrorHandler('Error while retrieving the appointment', 404));
-  }
+  } else {
 
-  message = "appointment retrieval successful";
+    if (!appointment) {
+      return next(new ErrorHandler('Error while retrieving the appointment', 404));
+    }
+    message = "appointment retrieval successful";
+  }
 
   res.status(200).json({
     success: true,
@@ -434,7 +428,8 @@ export const getAppointment = catchAsyncErrors(async (req, res, next) => {
 export const updateAppointment = catchAsyncErrors(async (req, res, next) => {
     let allFree;
     const { id } = req.params;
-    const { appointmentDate, appointmentTime, appointmentType, notes } = req.body;
+    const { appointmentTime, appointmentType, notes } = req.body;
+
 
 //  validate input data
     const currentDate = Date.now;
@@ -514,7 +509,7 @@ export const updateAppointment = catchAsyncErrors(async (req, res, next) => {
       if (!appointmentList)
       {
         const update = {
-          appointmentDate,
+          appointmentDate: appointmentTime.start,
           appointmentTime,
           appointmentType,
           notes,
@@ -552,7 +547,7 @@ export const updateAppointment = catchAsyncErrors(async (req, res, next) => {
         if (count === 0) // No time-clashing appointments
         {
           const update = {
-            appointmentDate,
+            appointmentDate: appointmentTime.start,
             appointmentTime,
             appointmentType,
             notes,
@@ -582,106 +577,179 @@ export const updateAppointment = catchAsyncErrors(async (req, res, next) => {
   
 // =====================================================================================================================================
 
-  // Delete appointment => /api/v1/appointment/:id PUT****
-  export const deleteAppointment = catchAsyncErrors(async (req, res, next) => {
-    const { id } = req.params;
-  
-    // check if appointment belongs to user
-    const appointment = await Appointment.find({ _id: id , linkedto: req.user.id},)
-    //const appointment = await Appointment.findById(id); --- onld code
+// Delete appointment => /api/v1/appointment/:id PUT****
+export const deleteAppointment = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
 
-    // does appointment exist?
-    if (!appointment) {
-      return next(new ErrorHandler("Specified appointment does not exist for this user", 404));
-    }
+  // check if appointment exists for current user
+  const appointment = await Appointment.findOne({ _id: id, linkedto: req.user._id});
 
-    // is appointment active?
-    if (appointment.status === "active") {
-      return next(new ErrorHandler("you cannot delete an active appointment, cancel it first", 400));
-    }
+  // does appointment exist?
+  if (!appointment) {
+    return next(new ErrorHandler("Specified appointment does not exist", 404));
+  }
 
-    Appointment.findByIdAndDelete(id); // delete the specified appointment
-  
-    res.status(200).json({
-      success: true,
-      message: "Appointment deleted successfully",
-    });
+  // is appointment active?
+  if (appointment.status === "active") {
+    return next(new ErrorHandler("you cannot delete an active appointment, cancel it first", 400));
+  }
+
+  await Appointment.findByIdAndDelete(id); // delete the specified appointment
+
+  res.status(200).json({
+    success: true,
+    message: "Appointment deleted successfully",
   });
+});
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  // Cancel Appointment => /api/v1/appointment/:id PUT****
-  export const cancelAppointment = catchAsyncErrors(async (req, res, next) => {
-    const { id } = req.params;
-  
-    const update = {
-      status: "cancelled",
-      data: id,
+// Cancel Appointment => /api/v1/appointment/:id PUT****
+export const cancelAppointment = catchAsyncErrors(async (req, res, next) => {
+  const { id } = req.params;
+
+  const update = {
+    status: "cancelled",
   };
 
-  const appointment = await Appointment.findByIdAndUpdate(id, update, {
-    new: true,
-    runValidators: true,
-    useFindAndModify: false,
-  })
-    .populate("status");
+  if (req.user.isDoctor === true) // Called by Doctor
+  {
+    //check if specified appointment is linked to doctor
+    const app = await Appointment.findById(id);
+    if (app.dmail === req.user.email)
+    {
+      console.log('DOCTOR NI OOOOO');
+      const appointment = await Appointment.findByIdAndUpdate(id, update, {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false,
+      })
+        .populate("status");
 
+      // Notify User of cancelled appointment by Doctor
+      const cancelledApp = await Appointment.findOne({_id: id}); // fetch Appointment
+      const user = await User.findOne({_id: cancelledApp.linkedto}); // fetch user
+  
+      mailOptions = {
+        from: 'schedg23@gmail.com',
+        to: cancelledApp.umail,
+        subject: `Appointment Notification: ${cancelledApp.appointmentType} Appointment with Doctor ${req.user.name}`,
+        text: `Hello ${user.name},\n\nThis is a reminder that your appointment with Dr. ${req.user.name} on ${cancelledApp.appointmentDate} has been cancelled.\n\nThank you,\nSchedG Telehealth.`
+      };
+
+      res.status(200).json({
+        success: true,
+        message: "Appointment cancelled succesfully",
+      });
+
+    }
+    else {
+      res.status(404).json({
+        success: false,
+        message: "The specified appointment does not exist on your appointments list",
+      });
+      return;
+    }
+  } else if (req.user.role === 'admin')
+  { // Called By Admin
+    console.log('ADMINISTRATOR NI OOOOO');
+
+    const appointment = await Appointment.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+      useFindAndModify: false,
+    })
+      .populate("status");
+    
+    // if appointment does not exist
     if (!appointment) {
       return next(new ErrorHandler("Specified appointment does not exist", 404));
     }
-      
+
+    res.status(200).json({
+      success: true,
+      message: "Appointment cancelled succesfully",
+    });
+
+  } else
+  { // By General user (patient)
     
-    // Inform user of cancelled appointment by doctor
-    const cancelledApp = await Appointment.findOne({_id: id}); // find Appointment
-    const user = await User.findOne({_id: cancelledApp.linkedto}); // fetch user
-    const mailOptions = {
-      from: 'schedg23@gmail.com',
-      to: cancelledApp.dmail,
-      subject: `Reminder: ${cancelledApp.appointmentType} Appointment with Doctor ${ cancelledApp.doctor.name}`,
-      text: `Hello ${user.name},\n\nThis is a reminder that your appointment with Doctor ${cancelledApp.doctor.name} on ${cancelledApp.appointmentDate} has been cancelled.\n\nThank you,\nSchedG Telehealth.`
-    };
-    
-    // Send the Email.
+    //check if specified appointment is linked to current user
+    const cancelledApp = await Appointment.findById(id); // fetch appointment
+
+    if (cancelledApp.umail === req.user.email)
+    {
+      const appointment = await Appointment.findByIdAndUpdate(id, update, {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false,
+      })
+        .populate("status");
+
+      // Notify Doctor of cancelled appointment by User
+      //const cancelledApp = await Appointment.findOne({_id: id}); // find Appointment
+      const doctor = await Doctor.findOne({_id: cancelledApp.doctor._id}); // fetch doctor
+      const userDoc = await User.findById(doctor.linkedto);
+  
+      mailOptions = {
+        from: 'schedg23@gmail.com',
+        to: cancelledApp.dmail,
+        subject: `Appointment Notification: ${cancelledApp.appointmentType} Appointment with ${ req.user.name}`,
+        text: `Hello Dr. ${userDoc.name},\n\nThis is a reminder that your appointment with ${req.user.name} on ${cancelledApp.appointmentDate} has been cancelled.\n\nThank you,\nSchedG Telehealth.`
+      };
+
+      res.status(200).json({
+        success: true,
+        message: "Appointment cancelled succesfully",
+      });
+
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "The specified appointment does not exist on your appointments list",
+      });
+      return;
+    }
+
+    // Send the Email Notification
     mail_transporter.sendMail(mailOptions, function(error, info){
       if (error) {
-      console.log(error);
+        return new ErrorHandler(error, 500);
       } else {
       console.log('Reminder email sent: ' + info.response);
     }
     });
+  }
+});
 
-    res.status(200).json({
-      success: true,
-      message: "Appointment cancelled successfully",
-    });
+//$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
+
+// Update Appointment Status => /api/v1/appointment/:id PUT****
+export const updateAppStatus = catchAsyncErrors(async (req, res, next) => {
+  const update = {status: "expired"};
+
+  const currentDate = Date.now();
+  const appointmentList = await Appointment.find({status: "active"})
+  
+  const lister = appointmentList.forEach((app) => {
+
+    if (app.appointmentTime[0].end <= currentDate){
+      updater(app._id, {status: 'expired'});
+    }
   });
 
+  res.status(200).json({
+    success: true,
+    message: "Appointments refreshed successfully",
+  });
 
-// ########################################################################################################################
-// Add code to reset an appointment immediately its time lapses.
+});
 
-
-  // Inform user of cancelled appointment by doctor
-// const mailOptions = {
-//   from: 'schedg23@gmail.com',
-//   to: cancelledApp.linkedto.email,
-//   subject: `Reminder: ${cancelledApp.appointmentType} Appointment with Doctor ${ cancelledApp.doctor.name}`,
-//   text: `Hello ${cancelledApp.linkedto.name},\n\nThis is a reminder that your appointment with Doctor ${cancelledApp.doctor.name} at ${cancelledApp.appointmentDate} has been cancelled.\n\nThank you,\nSchedG Telehealth.`
-// };
-
-// mail_transporter.senpmail(mailOptions, function(error, info){
-//   if (error) {
-//   console.log(error);
-//   } else {
-//   console.log('Reminder email sent: ' + info.response);
-// }
-// });
-
-// // Function to inform doctors/patients of cancelled appointments => /api/v1/register-as-doctor *****
-// export const remPatCancel = catchAsyncErrors(async (req, res, next) => {
-//     const { phone, specialty, yearsExp, consultFee, availableHrs } = req.body;
-  
-
-//     // Check if any doctor is linked to the user account
-//     const isDoctor = await Doctor.findOne( { linkedto: req.user.id } );
-// });
+// async function to update all the appointment db records
+const updater = async (id, update) => {
+  await Appointment.findByIdAndUpdate(id, update, {
+    new: true,
+    runValidators: true,
+    useFindAndModify: false,
+  })
+}
